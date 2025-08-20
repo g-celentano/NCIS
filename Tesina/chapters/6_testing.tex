@@ -1,0 +1,23 @@
+\chapter{Testing}
+
+La fase di testing ha rivestito un ruolo centrale nel processo di sviluppo: sono stati definiti e implementati casi di test specifici per validare la correttezza delle logiche di detection, la reattività delle strategie di mitigazione e la robustezza del sistema in presenza di traffico legittimo e malevolo.\par
+I risultati dei test hanno permesso di affinare le soglie, le policy e le metriche utilizzate, garantendo un equilibrio tra efficacia della protezione e minimizzazione dei falsi positivi. La documentazione dei test facilita la riproducibilità degli esperimenti e la comparazione con soluzioni alternative.
+\section{Metodologia e scenari di test}
+La validazione del sistema NCIS è stata condotta tramite simulazioni in ambienti Mininet, utilizzando sia topologie semplici che complesse. Nella topologia semplice (3 host, 4 switch), si è verificata la capacità del controller di distinguere tra traffico DoS e traffico legittimo, generando attacchi flood UDP/TCP e traffico normale (ping, iperf). Nella topologia complessa (7 host, 10 switch), si è dimostrata la scalabilità e l’indipendenza dalla topologia, simulando attacchi DoS distribuiti da più host verso un target e traffico legittimo tra altri host.\par
+Il processo di test ha previsto l’avvio del controller, la creazione della topologia desiderata, la generazione di traffico DoS e legittimo, e l’osservazione del comportamento del sistema. Sono stati utilizzati strumenti come hping3, nping e iperf per simulare i diversi tipi di traffico.\par
+Questa metodologia ha permesso di verificare l’efficacia delle logiche di detection e mitigazione, la robustezza del sistema e l’impatto sulle comunicazioni legittime, fornendo una base solida per la valutazione dei risultati.
+\section{Metodologia di Testing}
+
+La validazione del sistema NCIS è stata condotta attraverso una serie di simulazioni in ambienti Mininet, utilizzando sia topologie semplici che complesse. Nella topologia semplice, composta da tre host e quattro switch, l’obiettivo era verificare la capacità del controller di distinguere tra traffico DoS e traffico legittimo. Sono stati generati attacchi flood UDP/TCP da un host verso un altro, mentre un terzo host produceva traffico legittimo (ping, iperf).
+
+Nella topologia complessa, con sette host e dieci switch disposti in una struttura mesh/tree-like, si è voluto dimostrare la scalabilità e l’indipendenza dalla topologia del controller. Sono stati simulati attacchi DoS distribuiti da più host verso un target, insieme a traffico legittimo tra altri host.
+
+Il processo di test ha seguito questi passi:
+\begin{enumerate}
+    \item Avvio del controller tramite \texttt{ryu-manager controller.py}.
+    \item Avvio della topologia desiderata (\texttt{topology.py} per la semplice, \texttt{topology\_new.py} per la complessa).
+    \item Generazione di traffico DoS (es. \texttt{hping3}, \texttt{nping}, flood UDP/TCP) e traffico legittimo (ping, iperf) tra host selezionati.
+    \item Osservazione del comportamento del sistema, verifica della corretta rilevazione e mitigazione degli attacchi, e analisi dell’impatto sulle comunicazioni legittime.
+\end{enumerate}
+
+Questa metodologia ha permesso di testare l’efficacia delle logiche di detection e mitigazione, nonché la robustezza del sistema in scenari realistici e variabili.

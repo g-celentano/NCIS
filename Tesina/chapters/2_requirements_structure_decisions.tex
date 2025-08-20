@@ -1,0 +1,45 @@
+\chapter{Requisiti, Struttura e Decisioni Progettuali}
+
+\section{Miglioramenti rispetto alla soluzione precedente}
+Il progetto NCIS nasce dalla volontà di superare i limiti riscontrati nella soluzione presentata lo scorso anno. Di seguito si illustrano i principali difetti individuati e le relative correzioni implementate, con una riflessione sul loro impatto.
+
+\textbf{1. Over blocking:} In passato, il sistema bloccava intere porte degli switch, causando la perdita di traffico legittimo e penalizzando utenti non coinvolti negli attacchi. La nuova implementazione introduce un blocco a livello di flusso e indirizzo MAC, supportato da whitelist e blocklist, riducendo drasticamente l’impatto sugli utenti legittimi e rendendo la mitigazione più precisa.
+
+\textbf{2. Static threshold:} Le soglie di rilevamento erano fissate staticamente sulla topologia, rendendo il sistema poco flessibile e incline a errori in presenza di variazioni di traffico. Ora sono state adottate soglie adattive basate su medie mobili e percentili, che si adattano dinamicamente al traffico, migliorando la capacità di rilevare attacchi senza generare falsi positivi.
+
+\textbf{3. Mancanza di modularità:} La precedente soluzione accorpava monitoraggio, decisione ed enforcement in un unico blocco di codice, rendendo difficile la manutenzione e l’estensione. L’architettura attuale è modulare, con thread separati per monitoring, policy computation ed enforcement, favorendo la chiarezza, la manutenibilità e la scalabilità del sistema.
+
+\textbf{4. Detection limitata a DoS classici:} Il sistema rilevava solo attacchi UDP a bitrate costante, risultando inefficace contro pattern più sofisticati. Ora sono gestiti anche attacchi bursty e distribuiti, grazie all’introduzione di metriche aggiuntive come la varianza del traffico e l’analisi degli intervalli tra i pacchetti, rendendo la detection più robusta e realistica.
+
+\textbf{5. Policy di blocco/sblocco inflessibile:} I tempi di blocco erano troppo rigidi, con rischio di sblocco prematuro o penalizzazione eccessiva. L’adozione di strategie di backoff esponenziale e sblocco progressivo consente una gestione più flessibile e intelligente delle policy, riducendo sia i falsi positivi sia il rischio di rientro degli attaccanti.
+
+Questi miglioramenti sono stati introdotti per rendere il sistema più aderente alle esigenze di sicurezza di una rete SDN reale, aumentando la precisione, la resilienza e la capacità di adattamento del progetto.
+
+\section{Requisiti}
+Il sistema è stato progettato per soddisfare i seguenti requisiti fondamentali:
+\begin{itemize}
+    \item \textbf{Rilevamento in tempo reale}: capacità di individuare attacchi di rete con latenza minima, garantendo una risposta tempestiva.
+    \item \textbf{Mitigazione automatica}: applicazione di contromisure efficaci per limitare l’impatto degli attacchi, con particolare attenzione alla minimizzazione dei falsi positivi.
+    \item \textbf{Monitoraggio e logging}: raccolta continua di statistiche e eventi di rete, con registrazione dettagliata delle azioni intraprese per facilitare analisi forensi e tuning.
+    \item \textbf{Interfaccia REST}: esposizione di endpoint per l’interazione con il sistema, favorendo l’integrazione con dashboard, strumenti di orchestrazione e automazione.
+    \item \textbf{Modularità ed estendibilità}: possibilità di aggiungere facilmente nuovi moduli o algoritmi, adattando il sistema a scenari e minacce emergenti.
+\end{itemize}
+Questi requisiti sono stati definiti sulla base delle criticità riscontrate nelle soluzioni precedenti e delle best practice per la sicurezza in ambienti SDN.\par
+In prospettiva, il sistema potrà essere esteso per includere funzionalità di analisi predittiva, integrazione con sistemi di threat intelligence e supporto a protocolli di orchestrazione avanzata.
+
+\section{Design e Struttura del Progetto}
+L’architettura del sistema è fortemente modulare: ogni componente è responsabile di un compito specifico e comunica con gli altri tramite chiamate di funzione e endpoint REST. Questa scelta consente di isolare le logiche di detection, mitigazione e monitoraggio, facilitando la manutenzione e l’aggiornamento del sistema. La modularità è stata ulteriormente rafforzata dall’adozione di thread separati per le principali attività, riducendo i colli di bottiglia e migliorando la scalabilità.\par
+La progettazione ha tenuto conto anche della necessità di adattarsi a topologie di rete diverse e a pattern di traffico variabili, prevedendo la possibilità di configurare facilmente le metriche di detection e le policy di risposta. L’approccio seguito permette di validare il sistema sia in ambienti di test controllati sia in scenari più complessi e realistici.\par
+Questa flessibilità architetturale rappresenta un punto di forza per l’evoluzione futura del progetto.
+
+La struttura del progetto NCIS riflette una precisa scelta architetturale volta a garantire modularità, manutenibilità e chiarezza. Il codice è suddiviso in moduli distinti, ciascuno responsabile di un aspetto fondamentale del sistema: l’API REST (\texttt{api.py}) consente l’interazione esterna e l’integrazione con altri strumenti; il controller (\texttt{controller.py}) coordina le attività di detection e mitigazione; il modulo di rilevamento (\texttt{detector.py}) implementa le logiche adattive per l’identificazione degli attacchi; il mitigatore (\texttt{mitigator.py}) gestisce le strategie di risposta e blocco; il monitor (\texttt{monitor.py}) raccoglie e aggiorna le statistiche di rete necessarie per la detection; infine, i file di topologia (\texttt{topology.py}, \texttt{topology\_new.py}) permettono di simulare diversi scenari di rete per la validazione e il testing.\par
+In aggiunta, la presenza di file di documentazione e test (\texttt{Proceedings.md}, \texttt{Tests.md}) garantisce la tracciabilità delle decisioni progettuali e la riproducibilità dei risultati, elementi fondamentali in un contesto accademico e professionale. La struttura modulare consente inoltre di integrare facilmente nuovi algoritmi di detection o strategie di mitigazione, favorendo la sperimentazione e l’aggiornamento continuo.\par
+Questa organizzazione è stata pensata per facilitare la collaborazione tra sviluppatori, la revisione da parte di terzi e l’eventuale trasferimento tecnologico verso ambienti produttivi.
+
+\section{Decisioni Progettuali}
+Durante lo sviluppo del progetto sono state prese numerose decisioni architetturali e implementative, documentate nei file di proceedings. Questi documenti tracciano il percorso progettuale, le motivazioni delle scelte e le eventuali alternative considerate, fornendo trasparenza e facilitando la collaborazione tra diversi membri del team o la revisione da parte di terzi.\par
+La presenza di una documentazione strutturata delle decisioni è un elemento distintivo del progetto, che ne aumenta la qualità e la professionalità.
+
+Il progetto NCIS è stato sviluppato seguendo un approccio modulare, con la suddivisione delle responsabilità tra i diversi file principali. Il controller gestisce l’orchestrazione dei moduli e gli eventi OpenFlow, avviando thread dedicati per monitoraggio, detection, mitigazione e API REST. Il monitor raccoglie periodicamente statistiche granulari dagli switch, fornendo dati aggiornati per la detection. Il detector analizza le statistiche tramite plugin, utilizzando soglie adattive per rilevare anomalie e notificando il mitigator. Il mitigator applica regole di blocco e sblocco granulari, gestendo lo sblocco progressivo e il logging delle decisioni. L’API espone endpoint REST per la gestione dinamica delle regole.\par
+Le scelte architetturali sono state guidate dalla necessità di garantire modularità, estendibilità e reattività. L’uso di thread separati assicura monitoraggio e risposta continua, mentre le soglie adattive e il blocco granulare riducono i falsi positivi e l’impatto sul traffico legittimo. La documentazione delle decisioni e la presenza di logging facilitano audit, debugging e future estensioni.\par
+La soluzione è stata progettata per essere facilmente estendibile: nuovi plugin di detection, criteri di mitigazione e endpoint API possono essere aggiunti senza modificare la struttura esistente. Il sistema è pronto per ulteriori sviluppi e integrazioni, mantenendo la flessibilità necessaria per adattarsi a scenari e minacce emergenti.

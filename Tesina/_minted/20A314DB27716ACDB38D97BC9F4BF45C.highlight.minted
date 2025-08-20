@@ -1,0 +1,14 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{Monitor}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf}{run}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{)}\PYG{p}{:}
+        \PYG{k}{while} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{running}\PYG{p}{:}
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{collect\PYGZus{}stats}\PYG{p}{(}\PYG{p}{)}
+            \PYG{n}{time}\PYG{o}{.}\PYG{n}{sleep}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{interval}\PYG{p}{)}
+    \PYG{k}{def} \PYG{n+nf}{collect\PYGZus{}stats}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{)}\PYG{p}{:}
+        \PYG{k}{for} \PYG{n}{dp} \PYG{o+ow}{in} \PYG{n+nb}{getattr}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{controller}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{dps}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}\PYG{p}{)}\PYG{o}{.}\PYG{n}{values}\PYG{p}{(}\PYG{p}{)}\PYG{p}{:}
+            \PYG{n}{parser} \PYG{o}{=} \PYG{n}{dp}\PYG{o}{.}\PYG{n}{ofproto\PYGZus{}parser}
+            \PYG{n}{req} \PYG{o}{=} \PYG{n}{parser}\PYG{o}{.}\PYG{n}{OFPPortStatsRequest}\PYG{p}{(}\PYG{n}{dp}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{dp}\PYG{o}{.}\PYG{n}{ofproto}\PYG{o}{.}\PYG{n}{OFPP\PYGZus{}ANY}\PYG{p}{)}
+            \PYG{n}{dp}\PYG{o}{.}\PYG{n}{send\PYGZus{}msg}\PYG{p}{(}\PYG{n}{req}\PYG{p}{)}
+            \PYG{n}{req} \PYG{o}{=} \PYG{n}{parser}\PYG{o}{.}\PYG{n}{OFPFlowStatsRequest}\PYG{p}{(}\PYG{n}{dp}\PYG{p}{)}
+            \PYG{n}{dp}\PYG{o}{.}\PYG{n}{send\PYGZus{}msg}\PYG{p}{(}\PYG{n}{req}\PYG{p}{)}
+\end{MintedVerbatim}

@@ -1,0 +1,110 @@
+\chapter{Implementation}
+
+In questa sezione vengono presentati i principali moduli implementativi del sistema, con particolare attenzione alle scelte tecniche e alle motivazioni che hanno guidato lo sviluppo. Ogni modulo è stato progettato per rispondere a specifiche esigenze di sicurezza e per superare i limiti delle soluzioni precedenti.
+
+\section{API}
+L’API REST rappresenta il punto di ingresso per tutte le interazioni esterne con il sistema. Attraverso endpoint dedicati, è possibile inviare richieste di detection, ricevere notifiche di allarme e consultare lo stato della rete. La scelta di una interfaccia RESTful garantisce interoperabilità, semplicità di integrazione e scalabilità, permettendo di collegare il sistema a dashboard di monitoraggio, orchestratori o altri strumenti di automazione.\par
+L’implementazione dell’API è stata pensata per essere estendibile: nuovi endpoint possono essere aggiunti facilmente per supportare funzionalità avanzate o integrazioni future.
+\begin{minted}[breaklines,fontsize=\small]{python}
+@app.route('/detect', methods=['POST'])
+def detect():
+    # Riceve dati, chiama il controller e restituisce il risultato
+    result = controller.detect_attack(request.json)
+    return jsonify(result)
+\end{minted}
+
+\section{Controller}
+Il controller costituisce il nucleo logico del sistema: si occupa di orchestrare le attività di monitoraggio, rilevamento e mitigazione, coordinando i diversi moduli in modo sinergico. La sua implementazione come classe centrale consente di gestire lo stato della rete, le statistiche raccolte e le policy di risposta in modo strutturato e flessibile.\par
+La scelta di separare le responsabilità tra i moduli e di centralizzare la logica di coordinamento nel controller facilita la manutenzione, l’estensione e il debugging del sistema, rendendo più semplice l’integrazione di nuove funzionalità.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class ModularController(app_manager.RyuApp):
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+    def __init__(self, *args, **kwargs):
+        super(ModularController, self).__init__(*args, **kwargs)
+        self.mac_to_port = {}
+        self.monitor = Monitor(self)
+        self.detector = Detector(self)
+        self.mitigator = Mitigator(self)
+\end{minted}
+
+\section{Detector}
+Il modulo di detection è stato progettato per superare i limiti delle soluzioni statiche, adottando algoritmi adattivi basati su medie mobili, deviazione standard e analisi dei pattern di traffico. Questa scelta consente di rilevare attacchi anche in presenza di variazioni dinamiche del traffico, riducendo sensibilmente i falsi positivi e aumentando la robustezza del sistema.\par
+L’implementazione supporta la facile integrazione di nuovi algoritmi o metriche, favorendo la sperimentazione e l’aggiornamento continuo in risposta all’evoluzione delle minacce.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class AdaptiveThresholdPlugin(DetectionPlugin):
+    def __init__(self, window=10, std_factor=3):
+        self.window = window
+        self.std_factor = std_factor
+        self.history = {}
+    def analyze(self, stats):
+        anomalies = []
+        for key, value in stats.items():
+            throughput = value.get("throughput", 0)
+            hist = self.history.setdefault(key, [])
+            hist.append(throughput)
+            if len(hist) > self.window:
+                hist.pop(0)
+            if len(hist) >= self.window:
+                mean = np.mean(hist)
+                std = np.std(hist)
+                if throughput > mean + self.std_factor * std:
+                    anomalies.append({"key": key, "throughput": throughput, "mean": mean, "std": std})
+        return anomalies
+\end{minted}
+
+\section{Mitigator}
+Il modulo Mitigator si occupa di applicare le strategie di risposta agli attacchi rilevati, intervenendo in modo automatico e granulare sui flussi sospetti. L’introduzione di meccanismi di whitelist, blocklist e backoff esponenziale consente di gestire le policy di blocco e sblocco in modo intelligente, minimizzando l’impatto sul traffico legittimo e riducendo il rischio di penalizzazioni ingiustificate.\par
+Questa automazione è fondamentale per garantire una risposta tempestiva agli attacchi e per adattare il comportamento del sistema alle condizioni reali della rete.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class Mitigator:
+    def handle_anomaly(self, anomaly):
+        flow_id = anomaly.get("key")
+        datapath = next(iter(self.controller.dps.values()), None)
+        if datapath and flow_id:
+            self.apply_block(datapath, flow_id)
+            self.logger.info(f"Blocco automatico per anomalia: {flow_id}")
+\end{minted}
+
+\section{Monitor}
+Il modulo Monitor svolge un ruolo cruciale nella raccolta e nell’aggiornamento delle statistiche di rete, fornendo i dati necessari per la rilevazione tempestiva di anomalie e attacchi. La raccolta periodica delle metriche consente di mantenere una visione aggiornata dello stato della rete e di supportare le logiche adattive di detection.\par
+La progettazione del monitor è stata pensata per essere estendibile: nuove metriche possono essere aggiunte facilmente per migliorare la capacità di analisi e la precisione del sistema.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class Monitor:
+    def run(self):
+        while self.running:
+            self.collect_stats()
+            time.sleep(self.interval)
+    def collect_stats(self):
+        for dp in getattr(self.controller, "dps", {}).values():
+            parser = dp.ofproto_parser
+            req = parser.OFPPortStatsRequest(dp, 0, dp.ofproto.OFPP_ANY)
+            dp.send_msg(req)
+            req = parser.OFPFlowStatsRequest(dp)
+            dp.send_msg(req)
+\end{minted}
+
+\section{Topology}
+La validazione del sistema è stata effettuata tramite la simulazione di diverse topologie di rete, utilizzando ambienti di test sia semplici che complessi. L’ambiente di test ridotto consente di verificare il corretto funzionamento delle funzionalità di base, mentre la topologia complessa permette di stressare il sistema con traffico vario e attacchi multipli, testando la robustezza e la scalabilità delle soluzioni implementate.\par
+Questa scelta metodologica garantisce che il sistema sia realmente efficace e adattabile in scenari SDN di diversa complessità, fornendo una base solida per futuri sviluppi e applicazioni in ambienti produttivi.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class Environment(object):
+    def __init__(self):
+        self.net = Mininet(controller=RemoteController, link=TCLink)
+        self.h1 = self.net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.1')
+        self.s1 = self.net.addSwitch('s1', cls=OVSKernelSwitch)
+        self.net.addLink(self.h1, self.s1, bw=10)
+        self.net.build()
+        self.net.start()
+\end{minted}
+
+\begin{minted}[breaklines,fontsize=\small]{python}
+class ComplexEnvironmentFixed(object):
+    def __init__(self):
+        self.net = Mininet(controller=RemoteController, link=TCLink)
+        hosts = [self.net.addHost(f"h{i}", mac=f"00:00:00:00:00:0{i}", ip=f"10.0.0.{i}") for i in range(1,8)]
+        switches = [self.net.addSwitch(f"s{i}", cls=OVSKernelSwitch) for i in range(1,11)]
+        self.net.addLink(hosts[0], switches[0], bw=10)  # h1 -> s1
+        self.net.addLink(switches[0], switches[6], bw=5)  # s1 -> s7
+        self.net.build()
+        self.net.start()
+\end{minted}

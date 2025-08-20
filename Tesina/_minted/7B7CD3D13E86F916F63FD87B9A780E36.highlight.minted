@@ -1,0 +1,9 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{Mitigator}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf}{handle\PYGZus{}anomaly}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{anomaly}\PYG{p}{)}\PYG{p}{:}
+        \PYG{n}{flow\PYGZus{}id} \PYG{o}{=} \PYG{n}{anomaly}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{key}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+        \PYG{n}{datapath} \PYG{o}{=} \PYG{n+nb}{next}\PYG{p}{(}\PYG{n+nb}{iter}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{controller}\PYG{o}{.}\PYG{n}{dps}\PYG{o}{.}\PYG{n}{values}\PYG{p}{(}\PYG{p}{)}\PYG{p}{)}\PYG{p}{,} \PYG{k+kc}{None}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n}{datapath} \PYG{o+ow}{and} \PYG{n}{flow\PYGZus{}id}\PYG{p}{:}
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{apply\PYGZus{}block}\PYG{p}{(}\PYG{n}{datapath}\PYG{p}{,} \PYG{n}{flow\PYGZus{}id}\PYG{p}{)}
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{logger}\PYG{o}{.}\PYG{n}{info}\PYG{p}{(}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Blocco automatico per anomalia: }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{flow\PYGZus{}id}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+\end{MintedVerbatim}
