@@ -1,0 +1,25 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{Mitigator}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{controller}\PYG{p}{)}\PYG{p}{:}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{controller} \PYG{o}{=} \PYG{n}{controller}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{lock} \PYG{o}{=} \PYG{n}{threading}\PYG{o}{.}\PYG{n}{Lock}\PYG{p}{(}\PYG{p}{)}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{blocked\PYGZus{}flows} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}
+        \PYG{c+c1}{\PYGZsh{} Shared data structure for collaborative blocking decisions}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{shared\PYGZus{}blocklist} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}  \PYG{c+c1}{\PYGZsh{} Shared between modules}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{external\PYGZus{}policies} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}  \PYG{c+c1}{\PYGZsh{} Policies from external modules/admins}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{policy\PYGZus{}lock} \PYG{o}{=} \PYG{n}{threading}\PYG{o}{.}\PYG{n}{Lock}\PYG{p}{(}\PYG{p}{)}
+
+    \PYG{k}{def} \PYG{n+nf}{\PYGZus{}should\PYGZus{}block\PYGZus{}by\PYGZus{}policies}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{flow\PYGZus{}id}\PYG{p}{,} \PYG{n}{pkt}\PYG{p}{)}\PYG{p}{:}
+\PYG{+w}{        }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Check if flow should be blocked based on shared policies.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+        \PYG{k}{with} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{policy\PYGZus{}lock}\PYG{p}{:}
+            \PYG{c+c1}{\PYGZsh{} Check shared blocklist}
+            \PYG{k}{if} \PYG{n}{flow\PYGZus{}id} \PYG{o+ow}{in} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{shared\PYGZus{}blocklist}\PYG{p}{:}
+                \PYG{n}{policy} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{shared\PYGZus{}blocklist}\PYG{p}{[}\PYG{n}{flow\PYGZus{}id}\PYG{p}{]}
+                \PYG{k}{if} \PYG{n}{policy}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{until}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)} \PYG{o}{\PYGZgt{}} \PYG{n}{time}\PYG{o}{.}\PYG{n}{time}\PYG{p}{(}\PYG{p}{)}\PYG{p}{:}
+                    \PYG{k}{return} \PYG{k+kc}{True}
+            \PYG{c+c1}{\PYGZsh{} Check external policies (pattern\PYGZhy{}based blocking)}
+            \PYG{k}{for} \PYG{n}{policy\PYGZus{}id}\PYG{p}{,} \PYG{n}{policy} \PYG{o+ow}{in} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{external\PYGZus{}policies}\PYG{o}{.}\PYG{n}{items}\PYG{p}{(}\PYG{p}{)}\PYG{p}{:}
+                \PYG{k}{if} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}flow\PYGZus{}matches\PYGZus{}policy}\PYG{p}{(}\PYG{n}{pkt}\PYG{p}{,} \PYG{n}{policy}\PYG{p}{)}\PYG{p}{:}
+                    \PYG{k}{return} \PYG{k+kc}{True}
+        \PYG{k}{return} \PYG{k+kc}{False}
+\end{MintedVerbatim}

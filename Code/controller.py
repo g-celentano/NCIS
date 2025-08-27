@@ -30,6 +30,11 @@ try:
 except ImportError:
     start_api_server = None
 
+try:
+    from external_security_module import integrate_external_module
+except ImportError:
+    integrate_external_module = None
+
 
 class ModularController(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -64,6 +69,13 @@ class ModularController(app_manager.RyuApp):
                 target=start_api_server, args=(self.mitigator,), daemon=True
             )
             self.api_thread.start()
+
+        # Start external security module (optional)
+        if integrate_external_module:
+            self.external_module = integrate_external_module(self)
+            self.logger.info("External security module integrated")
+        else:
+            self.external_module = None
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):

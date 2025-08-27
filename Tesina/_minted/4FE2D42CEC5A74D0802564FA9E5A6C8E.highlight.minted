@@ -1,0 +1,21 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{ExternalSecurityModule}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{mitigator}\PYG{p}{)}\PYG{p}{:}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{mitigator} \PYG{o}{=} \PYG{n}{mitigator}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{known\PYGZus{}malicious\PYGZus{}ips} \PYG{o}{=} \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{192.168.1.100}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{10.0.0.50}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{]}
+
+    \PYG{k}{def} \PYG{n+nf}{\PYGZus{}add\PYGZus{}threat\PYGZus{}intelligence\PYGZus{}policies}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{)}\PYG{p}{:}
+\PYG{+w}{        }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Add policies based on known threats.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+        \PYG{k}{for} \PYG{n}{ip} \PYG{o+ow}{in} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{known\PYGZus{}malicious\PYGZus{}ips}\PYG{p}{:}
+            \PYG{n}{policy} \PYG{o}{=} \PYG{p}{\PYGZob{}}
+                \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{ipv4\PYGZus{}src}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{n}{ip}\PYG{p}{,}
+                \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{description}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Known malicious IP: }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{ip}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+                \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{severity}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{high}\PYG{l+s+s2}{\PYGZdq{}}
+            \PYG{p}{\PYGZcb{}}
+            \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{mitigator}\PYG{o}{.}\PYG{n}{add\PYGZus{}external\PYGZus{}policy}\PYG{p}{(}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{malicious\PYGZus{}ip\PYGZus{}}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{ip}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{n}{policy}\PYG{p}{)}
+
+    \PYG{k}{def} \PYG{n+nf}{block\PYGZus{}emergency\PYGZus{}target}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{target\PYGZus{}ip}\PYG{p}{,} \PYG{n}{duration}\PYG{o}{=}\PYG{l+m+mi}{300}\PYG{p}{)}\PYG{p}{:}
+\PYG{+w}{        }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Emergency blocking function for administrators.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+        \PYG{n}{flow\PYGZus{}id} \PYG{o}{=} \PYG{p}{(}\PYG{k+kc}{None}\PYG{p}{,} \PYG{k+kc}{None}\PYG{p}{,} \PYG{n}{target\PYGZus{}ip}\PYG{p}{,} \PYG{k+kc}{None}\PYG{p}{,} \PYG{k+kc}{None}\PYG{p}{,} \PYG{k+kc}{None}\PYG{p}{)}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{mitigator}\PYG{o}{.}\PYG{n}{add\PYGZus{}to\PYGZus{}shared\PYGZus{}blocklist}\PYG{p}{(}\PYG{n}{flow\PYGZus{}id}\PYG{p}{,} \PYG{n}{duration}\PYG{o}{=}\PYG{n}{duration}\PYG{p}{,} \PYG{n}{source}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{emergency\PYGZus{}admin}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+\end{MintedVerbatim}
