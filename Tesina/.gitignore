@@ -1,0 +1,36 @@
+# LaTeX build files
+*.aux
+*.bbl
+*.blg
+*.brf
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+
+
+# Editor temporanei
+*.dvi
+*.xdv
+*.ps
+
+# Backup files
+*~
+*.bak
+*.sav
+*.swp
+*.tmp
+
+# Latexmk specific
+latexmkrc
+*.latexmain
+
+# MacOS junk
+.DS_Store

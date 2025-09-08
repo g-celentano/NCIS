@@ -1,0 +1,13 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{should\PYGZus{}block}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{pkt}\PYG{p}{,} \PYG{n}{datapath}\PYG{p}{,} \PYG{n}{in\PYGZus{}port}\PYG{p}{)}\PYG{p}{:}
+    \PYG{n}{flow\PYGZus{}id} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}flow\PYGZus{}id}\PYG{p}{(}\PYG{n}{pkt}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} Check controller\PYGZsq{}s automatic blocking decisions}
+    \PYG{k}{with} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{lock}\PYG{p}{:}
+        \PYG{n}{block\PYGZus{}info} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{blocked\PYGZus{}flows}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{n}{flow\PYGZus{}id}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n}{block\PYGZus{}info} \PYG{o+ow}{and} \PYG{n}{block\PYGZus{}info}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{until}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{]} \PYG{o}{\PYGZgt{}} \PYG{n}{time}\PYG{o}{.}\PYG{n}{time}\PYG{p}{(}\PYG{p}{)}\PYG{p}{:}
+            \PYG{k}{return} \PYG{n}{flow\PYGZus{}id}
+    \PYG{c+c1}{\PYGZsh{} Check shared blocklist and external policies}
+    \PYG{k}{if} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}should\PYGZus{}block\PYGZus{}by\PYGZus{}policies}\PYG{p}{(}\PYG{n}{flow\PYGZus{}id}\PYG{p}{,} \PYG{n}{pkt}\PYG{p}{)}\PYG{p}{:}
+        \PYG{k}{return} \PYG{n}{flow\PYGZus{}id}
+    \PYG{k}{return} \PYG{k+kc}{None}
+\end{MintedVerbatim}

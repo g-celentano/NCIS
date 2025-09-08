@@ -24,14 +24,19 @@ Progettare e implementare un controller SDN modulare basato su Ryu, compatibile 
 - **Funzionalità:** Notifica delle anomalie al mitigator tramite callback.
 
 ### 4. mitigator.py
-- **Responsabilità:** Applicazione di regole di blocco/sblocco granulari (MAC/IP/UDP port), gestione dello sblocco progressivo, logging delle decisioni.
-- **Motivazione:** Evitare overblocking, garantire la sicurezza e la flessibilità operativa. Thread dedicato per lo sblocco automatico.
-- **Funzionalità:** Blocco automatico su segnalazione del detector, gestione thread-safe dei flussi bloccati.
+- **Responsabilità:** Applicazione di regole di blocco/sblocco granulari (MAC/IP/UDP port), gestione dello sblocco progressivo, coordinamento delle decisioni collaborative.
+- **Motivazione:** Evitare overblocking, garantire la sicurezza e la flessibilità operativa. Permettere contributi da moduli esterni alle decisioni di sicurezza.
+- **Funzionalità:** Blocco automatico su segnalazione del detector, gestione thread-safe dei flussi bloccati, shared blocklist e external policies per decisioni collaborative.
 
 ### 5. api.py
-- **Responsabilità:** Esporre endpoint REST per la gestione dinamica delle regole di blocco/sblocco.
-- **Motivazione:** Permettere l'integrazione con applicazioni esterne e la modifica runtime delle policy.
-- **Funzionalità:** Endpoint per bloccare, sbloccare e visualizzare lo stato dei flussi bloccati.
+- **Responsabilità:** Esporre endpoint REST per la gestione dinamica delle regole di blocco/sblocco e delle policy collaborative.
+- **Motivazione:** Permettere l'integrazione con applicazioni esterne e la modifica runtime delle policy. Supportare decisioni collaborative da moduli esterni.
+- **Funzionalità:** Endpoint per bloccare, sbloccare e visualizzare lo stato dei flussi bloccati. Gestione policy esterne e shared blocklist.
+
+### 6. external_security_module.py
+- **Responsabilità:** Esempio di modulo esterno che contribuisce alle decisioni di blocco tramite threat intelligence e policy amministrative.
+- **Motivazione:** Dimostrare l'estendibilità del sistema e la capacità di integrazione con sistemi di sicurezza esterni.
+- **Funzionalità:** Threat intelligence, policy automatiche, interfaccia di emergenza per amministratori.
 
 ---
 
@@ -41,7 +46,8 @@ Progettare e implementare un controller SDN modulare basato su Ryu, compatibile 
 - **Soglie adattive:** Permettono di rilevare anomalie in modo robusto e dinamico, riducendo i falsi positivi.
 - **Blocco granulare:** Minimizza l'impatto sul traffico legittimo, intervenendo solo sui flussi sospetti.
 - **Sblocco progressivo:** Penalizza i flussi recidivi, favorendo la resilienza della rete.
-- **REST API:** Consente la gestione runtime delle policy, favorendo l'integrazione con sistemi esterni.
+- **Decisioni collaborative:** Permette a moduli esterni, sistemi di threat intelligence e amministratori di contribuire alle policy di sicurezza.
+- **REST API:** Consente la gestione runtime delle policy, favorendo l'integrazione con sistemi esterni e la gestione collaborativa.
 - **Logging:** Traccia tutte le decisioni per audit e debug.
 
 ---
@@ -50,8 +56,29 @@ Progettare e implementare un controller SDN modulare basato su Ryu, compatibile 
 - **Detection plugin-based:** Nuove strategie di detection possono essere aggiunte facilmente.
 - **Mitigator:** Può essere esteso per supportare altri criteri di blocco/sblocco.
 - **API:** Endpoint REST facilmente ampliabili.
+- **Collaborative Blocking:** Sistema aperto per integrare moduli esterni di sicurezza, threat intelligence e policy amministrative.
+
+---
+
+## Implementazione Collaborative Blocking Decisions
+
+### Problema Risolto
+- **Flaw:** Solo il controller prendeva decisioni di blocco, limitando l'estendibilità.
+- **Soluzione:** Implementata struttura dati condivisa per blocklist e policy esterne.
+
+### Componenti Aggiunti
+- **Shared Blocklist:** Repository centralizzato per decisioni di blocco da fonti multiple
+- **External Policies:** Regole pattern-based da moduli esterni
+- **REST API estesa:** Endpoint per gestione policy collaborative
+- **External Security Module:** Esempio di integrazione con threat intelligence
+
+### Benefici
+- **Estendibilità:** Facile integrazione di nuovi moduli di sicurezza
+- **Flessibilità:** Decisioni di blocco da controller, admin, e sistemi esterni
+- **Responsività:** Aggiornamento policy in tempo reale
+- **Trasparenza:** Tutte le policy sono loggate e auditable
 
 ---
 
 ## Stato finale
-Tutti i file sono stati implementati secondo le specifiche richieste. La soluzione è pronta per essere testata e ulteriormente estesa secondo le necessità future.
+Tutti i file sono stati implementati secondo le specifiche richieste, inclusa la nuova funzionalità di Collaborative Blocking Decisions. La soluzione è pronta per essere testata e ulteriormente estesa secondo le necessità future. Il sistema ora supporta decisioni di sicurezza collaborative, superando il limite del controller-centric blocking.

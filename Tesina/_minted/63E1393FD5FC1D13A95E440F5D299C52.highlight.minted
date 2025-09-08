@@ -1,0 +1,20 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}}\PYG{l+s+s1}{/policy}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{,} \PYG{n}{methods}\PYG{o}{=}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}}\PYG{l+s+s1}{POST}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{]}\PYG{p}{)}
+\PYG{k}{def} \PYG{n+nf}{add\PYGZus{}policy}\PYG{p}{(}\PYG{p}{)}\PYG{p}{:}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Add an external blocking policy.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{data} \PYG{o}{=} \PYG{n}{request}\PYG{o}{.}\PYG{n}{json}
+    \PYG{n}{policy\PYGZus{}id} \PYG{o}{=} \PYG{n}{data}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{policy\PYGZus{}id}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+    \PYG{n}{policy} \PYG{o}{=} \PYG{n}{data}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{policy}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}\PYG{p}{)}
+    \PYG{n}{mitigator}\PYG{o}{.}\PYG{n}{add\PYGZus{}external\PYGZus{}policy}\PYG{p}{(}\PYG{n}{policy\PYGZus{}id}\PYG{p}{,} \PYG{n}{policy}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{jsonify}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{status}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{policy\PYGZus{}added}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{policy\PYGZus{}id}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{n}{policy\PYGZus{}id}\PYG{p}{\PYGZcb{}}\PYG{p}{)}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}}\PYG{l+s+s1}{/shared\PYGZhy{}block}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{,} \PYG{n}{methods}\PYG{o}{=}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}}\PYG{l+s+s1}{POST}\PYG{l+s+s1}{\PYGZsq{}}\PYG{p}{]}\PYG{p}{)}
+\PYG{k}{def} \PYG{n+nf}{add\PYGZus{}shared\PYGZus{}block}\PYG{p}{(}\PYG{p}{)}\PYG{p}{:}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Add a flow to the shared blocklist.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{data} \PYG{o}{=} \PYG{n}{request}\PYG{o}{.}\PYG{n}{json}
+    \PYG{n}{flow\PYGZus{}id} \PYG{o}{=} \PYG{n+nb}{tuple}\PYG{p}{(}\PYG{n}{data}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{n}{k}\PYG{p}{)} \PYG{k}{for} \PYG{n}{k} \PYG{o+ow}{in} \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{eth\PYGZus{}src}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{eth\PYGZus{}dst}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{ipv4\PYGZus{}src}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{ipv4\PYGZus{}dst}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{udp\PYGZus{}src}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{udp\PYGZus{}dst}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{]}\PYG{p}{)}
+    \PYG{n}{duration} \PYG{o}{=} \PYG{n}{data}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{duration}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{3600}\PYG{p}{)}
+    \PYG{n}{source} \PYG{o}{=} \PYG{n}{data}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{source}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{api}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+    \PYG{n}{mitigator}\PYG{o}{.}\PYG{n}{add\PYGZus{}to\PYGZus{}shared\PYGZus{}blocklist}\PYG{p}{(}\PYG{n}{flow\PYGZus{}id}\PYG{p}{,} \PYG{n}{duration}\PYG{p}{,} \PYG{n}{source}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{jsonify}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{status}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{added\PYGZus{}to\PYGZus{}shared\PYGZus{}blocklist}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{flow\PYGZus{}id}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{n}{flow\PYGZus{}id}\PYG{p}{\PYGZcb{}}\PYG{p}{)}
+\end{MintedVerbatim}

@@ -1,0 +1,187 @@
+\chapter{Implementation}
+
+In questa sezione vengono presentati i principali moduli implementativi del sistema, con particolare attenzione alle scelte tecniche e alle motivazioni che hanno guidato lo sviluppo. Ogni modulo è stato progettato per rispondere a specifiche esigenze di sicurezza e per superare i limiti delle soluzioni precedenti.
+
+\section{API}
+L'API REST rappresenta il punto di ingresso per tutte le interazioni esterne con il sistema. Attraverso endpoint dedicati, è possibile inviare richieste di detection, ricevere notifiche di allarme e consultare lo stato della rete. La scelta di una interfaccia RESTful garantisce interoperabilità, semplicità di integrazione e scalabilità, permettendo di collegare il sistema a dashboard di monitoraggio, orchestratori o altri strumenti di automazione.\par
+L'implementazione dell'API è stata significativamente estesa per supportare la gestione collaborativa delle policy di sicurezza. I nuovi endpoint permettono a moduli esterni, sistemi di threat intelligence e amministratori di contribuire alle decisioni di blocco, superando il limite del controller-centric blocking. La gestione delle policy esterne e della shared blocklist consente una risposta più flessibile e integrata alle minacce.
+\begin{minted}[breaklines,fontsize=\small]{python}
+@app.route('/policy', methods=['POST'])
+def add_policy():
+    """Add an external blocking policy."""
+    data = request.json
+    policy_id = data.get("policy_id")
+    policy = data.get("policy", {})
+    mitigator.add_external_policy(policy_id, policy)
+    return jsonify({"status": "policy_added", "policy_id": policy_id})
+
+@app.route('/shared-block', methods=['POST'])
+def add_shared_block():
+    """Add a flow to the shared blocklist."""
+    data = request.json
+    flow_id = tuple(data.get(k) for k in ["eth_src", "eth_dst", "ipv4_src", "ipv4_dst", "udp_src", "udp_dst"])
+    duration = data.get("duration", 3600)
+    source = data.get("source", "api")
+    mitigator.add_to_shared_blocklist(flow_id, duration, source)
+    return jsonify({"status": "added_to_shared_blocklist", "flow_id": flow_id})
+\end{minted}
+
+\section{Controller}
+Il controller costituisce il nucleo logico del sistema: si occupa di orchestrare le attività di monitoraggio, rilevamento e mitigazione, coordinando i diversi moduli in modo sinergico. La sua implementazione come classe centrale consente di gestire lo stato della rete, le statistiche raccolte e le policy di risposta in modo strutturato e flessibile.\par
+Una novità importante è l'integrazione opzionale di moduli esterni di sicurezza che possono contribuire alle decisioni di blocco. Questo approccio collaborativo permette di integrare sistemi di threat intelligence, policy amministrative e altre fonti di intelligence per una sicurezza più robusta e adattiva.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class ModularController(app_manager.RyuApp):
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+    def __init__(self, *args, **kwargs):
+        super(ModularController, self).__init__(*args, **kwargs)
+        self.mac_to_port = {}
+        self.dps = {}  # Track switches
+        self.monitor = Monitor(self)
+        self.detector = Detector(self, interval=5)
+        self.mitigator = Mitigator(self)
+        
+        # Start external security module (optional)
+        if integrate_external_module:
+            self.external_module = integrate_external_module(self)
+            self.logger.info("External security module integrated")
+\end{minted}
+
+\section{Detector}
+Il modulo di detection è stato progettato per superare i limiti delle soluzioni statiche, adottando algoritmi adattivi basati su medie mobili, deviazione standard e analisi dei pattern di traffico. Questa scelta consente di rilevare attacchi anche in presenza di variazioni dinamiche del traffico, riducendo sensibilmente i falsi positivi e aumentando la robustezza del sistema.\par
+L'implementazione supporta la facile integrazione di nuovi algoritmi o metriche, favorendo la sperimentazione e l'aggiornamento continuo in risposta all'evoluzione delle minacce.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class AdaptiveThresholdPlugin(DetectionPlugin):
+    def __init__(self, window=10, std_factor=3):
+        self.window = window
+        self.std_factor = std_factor
+        self.history = {}
+    def analyze(self, stats):
+        anomalies = []
+        for key, value in stats.items():
+            throughput = value.get("throughput", 0)
+            hist = self.history.setdefault(key, [])
+            hist.append(throughput)
+            if len(hist) > self.window:
+                hist.pop(0)
+            if len(hist) >= self.window:
+                mean = np.mean(hist)
+                std = np.std(hist)
+                if throughput > mean + self.std_factor * std:
+                    anomalies.append({"key": key, "throughput": throughput, "mean": mean, "std": std})
+        return anomalies
+\end{minted}
+
+\section{Mitigator}
+Il modulo Mitigator si occupa di applicare le strategie di risposta agli attacchi rilevati, intervenendo in modo automatico e granulare sui flussi sospetti. L'introduzione di meccanismi di whitelist, blocklist e backoff esponenziale consente di gestire le policy di blocco e sblocco in modo intelligente, minimizzando l'impatto sul traffico legittimo e riducendo il rischio di penalizzazioni ingiustificate.\par
+Una caratteristica fondamentale della nuova implementazione è il supporto per decisioni collaborative. Il mitigator ora gestisce una struttura dati condivisa per le policy di blocco, permettendo a moduli esterni di contribuire alle decisioni di sicurezza. Questo approccio supera il limite del controller-centric blocking e consente l'integrazione con sistemi di threat intelligence e policy amministrative.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class Mitigator:
+    def __init__(self, controller):
+        self.controller = controller
+        self.lock = threading.Lock()
+        self.blocked_flows = {}
+        # Shared data structure for collaborative blocking decisions
+        self.shared_blocklist = {}  # Shared between modules
+        self.external_policies = {}  # Policies from external modules/admins
+        self.policy_lock = threading.Lock()
+        
+    def _should_block_by_policies(self, flow_id, pkt):
+        """Check if flow should be blocked based on shared policies."""
+        with self.policy_lock:
+            # Check shared blocklist
+            if flow_id in self.shared_blocklist:
+                policy = self.shared_blocklist[flow_id]
+                if policy.get("until", 0) > time.time():
+                    return True
+            # Check external policies (pattern-based blocking)
+            for policy_id, policy in self.external_policies.items():
+                if self._flow_matches_policy(pkt, policy):
+                    return True
+        return False
+\end{minted}
+
+\section{External Security Module}
+Il modulo di sicurezza esterno rappresenta un'innovazione significativa dell'architettura, dimostrando come sistemi esterni possano contribuire alle decisioni di blocco. Questo modulo integra fonti di threat intelligence, gestisce policy amministrative e fornisce un'interfaccia per risposte di emergenza.\par
+L'implementazione del modulo esterno serve come prova di concetto per l'estendibilità del sistema e mostra come superare il limite del controller-centric blocking attraverso un approccio collaborativo.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class ExternalSecurityModule:
+    def __init__(self, mitigator):
+        self.mitigator = mitigator
+        self.known_malicious_ips = ["192.168.1.100", "10.0.0.50"]
+        
+    def _add_threat_intelligence_policies(self):
+        """Add policies based on known threats."""
+        for ip in self.known_malicious_ips:
+            policy = {
+                "ipv4_src": ip,
+                "description": f"Known malicious IP: {ip}",
+                "severity": "high"
+            }
+            self.mitigator.add_external_policy(f"malicious_ip_{ip}", policy)
+            
+    def block_emergency_target(self, target_ip, duration=300):
+        """Emergency blocking function for administrators."""
+        flow_id = (None, None, target_ip, None, None, None)
+        self.mitigator.add_to_shared_blocklist(flow_id, duration=duration, source="emergency_admin")
+\end{minted}
+
+\section{Monitor}
+Il modulo Monitor svolge un ruolo cruciale nella raccolta e nell'aggiornamento delle statistiche di rete, fornendo i dati necessari per la rilevazione tempestiva di anomalie e attacchi. La raccolta periodica delle metriche consente di mantenere una visione aggiornata dello stato della rete e di supportare le logiche adattive di detection.\par
+La progettazione del monitor è stata pensata per essere estendibile: nuove metriche possono essere aggiunte facilmente per migliorare la capacità di analisi e la precisione del sistema.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class Monitor:
+    def run(self):
+        while self.running:
+            self.collect_stats()
+            time.sleep(self.interval)
+    def collect_stats(self):
+        for dp in getattr(self.controller, "dps", {}).values():
+            parser = dp.ofproto_parser
+            req = parser.OFPPortStatsRequest(dp, 0, dp.ofproto.OFPP_ANY)
+            dp.send_msg(req)
+            req = parser.OFPFlowStatsRequest(dp)
+            dp.send_msg(req)
+\end{minted}
+
+\section{Topology}
+La validazione del sistema è stata effettuata tramite la simulazione di diverse topologie di rete, utilizzando ambienti di test sia semplici che complessi. L'ambiente di test ridotto consente di verificare il corretto funzionamento delle funzionalità di base, mentre la topologia complessa permette di stressare il sistema con traffico vario e attacchi multipli, testando la robustezza e la scalabilità delle soluzioni implementate.\par
+Le topologie sono state progettate per testare anche le nuove funzionalità collaborative, verificando l'integrazione tra il controller automatico e i moduli esterni di sicurezza.
+\begin{minted}[breaklines,fontsize=\small]{python}
+class Environment(object):
+    def __init__(self):
+        self.net = Mininet(controller=RemoteController, link=TCLink)
+        self.h1 = self.net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.1')
+        self.s1 = self.net.addSwitch('s1', cls=OVSKernelSwitch)
+        self.net.addLink(self.h1, self.s1, bw=10)
+        self.net.build()
+        self.net.start()
+\end{minted}
+
+\begin{minted}[breaklines,fontsize=\small]{python}
+class ComplexEnvironmentFixed(object):
+    def __init__(self):
+        self.net = Mininet(controller=RemoteController, link=TCLink)
+        hosts = [self.net.addHost(f"h{i}", mac=f"00:00:00:00:00:0{i}", ip=f"10.0.0.{i}") for i in range(1,8)]
+        switches = [self.net.addSwitch(f"s{i}", cls=OVSKernelSwitch) for i in range(1,11)]
+        self.net.addLink(hosts[0], switches[0], bw=10)  # h1 -> s1
+        self.net.addLink(switches[0], switches[6], bw=5)  # s1 -> s7
+        self.net.build()
+        self.net.start()
+\end{minted}
+
+\section{Collaborative Blocking Integration}
+L'integrazione delle decisioni collaborative rappresenta una delle principali innovazioni dell'architettura. Questo approccio permette di superare il limite del controller-centric blocking, abilitando un ecosistema di sicurezza più ricco e flessibile.\par
+Il sistema ora supporta tre tipi di decisioni di blocco: automatiche (dal controller), collaborative (da moduli esterni) e amministrative (tramite API). Questa architettura a più livelli garantisce una risposta più completa e adattiva alle minacce, mantenendo al contempo la semplicità d'uso e l'affidabilità del sistema base.
+\begin{minted}[breaklines,fontsize=\small]{python}
+def should_block(self, pkt, datapath, in_port):
+    flow_id = self._flow_id(pkt)
+    # Check controller's automatic blocking decisions
+    with self.lock:
+        block_info = self.blocked_flows.get(flow_id)
+        if block_info and block_info["until"] > time.time():
+            return flow_id
+    # Check shared blocklist and external policies
+    if self._should_block_by_policies(flow_id, pkt):
+        return flow_id
+    return None
+\end{minted}

@@ -30,6 +30,11 @@ class Mitigator:
         self.blocked_flows = {}
         self.logger = logging.getLogger("Mitigator")
 
+        # Shared data structure for collaborative blocking decisions
+        self.shared_blocklist = {}  # Shared between modules
+        self.external_policies = {}  # Policies from external modules/admins
+        self.policy_lock = threading.Lock()  # Separate lock for policies
+
     def _flow_id(self, pkt):
         # Identificatore granulare: MAC/IP/UDP port
         eth = pkt.get("eth", {})
@@ -48,12 +53,118 @@ class Mitigator:
     def should_block(self, pkt, datapath, in_port):
         flow_id = self._flow_id(pkt)
         now = time.time()
+
+        # Check controller's automatic blocking decisions
         with self.lock:
             block_info = self.blocked_flows.get(flow_id)
             if block_info and block_info["until"] > now:
                 return flow_id
+
+        # Check shared blocklist and external policies
+        if self._should_block_by_policies(flow_id, pkt):
+            return flow_id
+
         # Qui puoi aggiungere logica per decidere se bloccare in base a segnali dal Detector
         return None
+
+    def _should_block_by_policies(self, flow_id, pkt):
+        """Check if flow should be blocked based on shared policies."""
+        with self.policy_lock:
+            # Check shared blocklist
+            if flow_id in self.shared_blocklist:
+                policy = self.shared_blocklist[flow_id]
+                if policy.get("until", 0) > time.time():
+                    self.logger.info(f"Flow blocked by shared policy: {flow_id}")
+                    return True
+
+            # Check external policies (pattern-based blocking)
+            for policy_id, policy in self.external_policies.items():
+                if self._flow_matches_policy(pkt, policy):
+                    self.logger.info(
+                        f"Flow blocked by external policy '{policy_id}': {flow_id}"
+                    )
+                    return True
+
+        return False
+
+    def _flow_matches_policy(self, pkt, policy):
+        """Check if a packet matches a policy pattern."""
+        eth = pkt.get("eth", {})
+        ip = pkt.get("ip", {})
+        udp = pkt.get("udp", {})
+        tcp = pkt.get("tcp", {})
+
+        # Check MAC addresses
+        if policy.get("eth_src") and eth.get("src") != policy["eth_src"]:
+            return False
+        if policy.get("eth_dst") and eth.get("dst") != policy["eth_dst"]:
+            return False
+
+        # Check IP addresses
+        if policy.get("ipv4_src") and ip.get("src") != policy["ipv4_src"]:
+            return False
+        if policy.get("ipv4_dst") and ip.get("dst") != policy["ipv4_dst"]:
+            return False
+
+        # Check ports
+        if policy.get("udp_src") and udp and udp.get("src_port") != policy["udp_src"]:
+            return False
+        if policy.get("udp_dst") and udp and udp.get("dst_port") != policy["udp_dst"]:
+            return False
+        if policy.get("tcp_src") and tcp and tcp.get("src_port") != policy["tcp_src"]:
+            return False
+        if policy.get("tcp_dst") and tcp and tcp.get("dst_port") != policy["tcp_dst"]:
+            return False
+
+        # Check protocol
+        if policy.get("ip_proto") and ip.get("proto") != policy["ip_proto"]:
+            return False
+
+        return True
+
+    def add_external_policy(self, policy_id, policy):
+        """Add an external blocking policy."""
+        with self.policy_lock:
+            self.external_policies[policy_id] = policy
+            self.logger.info(f"Added external policy '{policy_id}': {policy}")
+
+    def remove_external_policy(self, policy_id):
+        """Remove an external blocking policy."""
+        with self.policy_lock:
+            if policy_id in self.external_policies:
+                del self.external_policies[policy_id]
+                self.logger.info(f"Removed external policy '{policy_id}'")
+                return True
+            return False
+
+    def add_to_shared_blocklist(self, flow_id, duration=3600, source="external"):
+        """Add a flow to the shared blocklist."""
+        with self.policy_lock:
+            self.shared_blocklist[flow_id] = {
+                "until": time.time() + duration,
+                "source": source,
+                "added_at": time.time(),
+            }
+            self.logger.info(
+                f"Added flow to shared blocklist: {flow_id} for {duration}s (source: {source})"
+            )
+
+    def remove_from_shared_blocklist(self, flow_id):
+        """Remove a flow from the shared blocklist."""
+        with self.policy_lock:
+            if flow_id in self.shared_blocklist:
+                del self.shared_blocklist[flow_id]
+                self.logger.info(f"Removed flow from shared blocklist: {flow_id}")
+                return True
+            return False
+
+    def get_all_policies(self):
+        """Get all active policies for monitoring/debugging."""
+        with self.policy_lock:
+            return {
+                "shared_blocklist": dict(self.shared_blocklist),
+                "external_policies": dict(self.external_policies),
+            }
 
     def apply_block(self, datapath, flow_id):
         with self.lock:
@@ -121,10 +232,24 @@ class Mitigator:
     def unblock_flows(self):
         # Da chiamare periodicamente per sbloccare i flussi scaduti
         now = time.time()
+
+        # Unblock controller's automatic blocks
         with self.lock:
             expired = [
                 fid for fid, info in self.blocked_flows.items() if info["until"] <= now
             ]
             for fid in expired:
                 del self.blocked_flows[fid]
-                self.logger.info(f"Sblocco flow {fid}")
+                self.logger.info(f"Sblocco flow automatico: {fid}")
+
+        # Unblock expired shared blocklist entries
+        with self.policy_lock:
+            expired_shared = [
+                fid
+                for fid, info in self.shared_blocklist.items()
+                if info["until"] <= now
+            ]
+            for fid in expired_shared:
+                source = self.shared_blocklist[fid].get("source", "unknown")
+                del self.shared_blocklist[fid]
+                self.logger.info(f"Sblocco flow condiviso: {fid} (source: {source})")

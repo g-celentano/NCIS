@@ -1,0 +1,21 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{AdaptiveThresholdPlugin}\PYG{p}{(}\PYG{n}{DetectionPlugin}\PYG{p}{)}\PYG{p}{:}
+    \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{window}\PYG{o}{=}\PYG{l+m+mi}{10}\PYG{p}{,} \PYG{n}{std\PYGZus{}factor}\PYG{o}{=}\PYG{l+m+mi}{3}\PYG{p}{)}\PYG{p}{:}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{window} \PYG{o}{=} \PYG{n}{window}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{std\PYGZus{}factor} \PYG{o}{=} \PYG{n}{std\PYGZus{}factor}
+        \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{history} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{p}{\PYGZcb{}}
+    \PYG{k}{def} \PYG{n+nf}{analyze}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{stats}\PYG{p}{)}\PYG{p}{:}
+        \PYG{n}{anomalies} \PYG{o}{=} \PYG{p}{[}\PYG{p}{]}
+        \PYG{k}{for} \PYG{n}{key}\PYG{p}{,} \PYG{n}{value} \PYG{o+ow}{in} \PYG{n}{stats}\PYG{o}{.}\PYG{n}{items}\PYG{p}{(}\PYG{p}{)}\PYG{p}{:}
+            \PYG{n}{throughput} \PYG{o}{=} \PYG{n}{value}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{throughput}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)}
+            \PYG{n}{hist} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{history}\PYG{o}{.}\PYG{n}{setdefault}\PYG{p}{(}\PYG{n}{key}\PYG{p}{,} \PYG{p}{[}\PYG{p}{]}\PYG{p}{)}
+            \PYG{n}{hist}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{throughput}\PYG{p}{)}
+            \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{hist}\PYG{p}{)} \PYG{o}{\PYGZgt{}} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{window}\PYG{p}{:}
+                \PYG{n}{hist}\PYG{o}{.}\PYG{n}{pop}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)}
+            \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{hist}\PYG{p}{)} \PYG{o}{\PYGZgt{}}\PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{window}\PYG{p}{:}
+                \PYG{n}{mean} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{mean}\PYG{p}{(}\PYG{n}{hist}\PYG{p}{)}
+                \PYG{n}{std} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{std}\PYG{p}{(}\PYG{n}{hist}\PYG{p}{)}
+                \PYG{k}{if} \PYG{n}{throughput} \PYG{o}{\PYGZgt{}} \PYG{n}{mean} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{std\PYGZus{}factor} \PYG{o}{*} \PYG{n}{std}\PYG{p}{:}
+                    \PYG{n}{anomalies}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{key}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{n}{key}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{throughput}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{n}{throughput}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{mean}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{n}{mean}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{std}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{:} \PYG{n}{std}\PYG{p}{\PYGZcb{}}\PYG{p}{)}
+        \PYG{k}{return} \PYG{n}{anomalies}
+\end{MintedVerbatim}
